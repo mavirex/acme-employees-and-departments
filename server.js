@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const { Employee, Department, syncAndSeed } = require('./db')
+const faker = require('faker')
 
 const app = express();
 app.use(require('body-parser').json());
@@ -23,6 +24,15 @@ app.get('/api/employees', async (req, res, next)=> {
   }
   catch(err){
     next(err);
+  }
+});
+
+app.post('/api/employees', async (req, res, next)=> {
+  try {
+    res.send(await Employee.create({ name: faker.name.firstName()}));
+  }
+  catch(ex){
+    next(ex);
   }
 });
 

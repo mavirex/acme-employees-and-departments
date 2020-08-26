@@ -9,38 +9,48 @@ class App extends React.Component {
           employees: [],
           departments: []
         }
+    this.removeDept = this.removeDept.bind(this)
+    this.deleteEmployee = this.deleteEmployee.bind(this)
+    this.hire = this.hire.bind(this)
+    this.giveDept = this.giveDept.bind(this)
     }
     async componentDidMount () {
-        try{
-        const deptResponse = await Axios.get('api/departments');
-        const departments = deptResponse.data;
-        this.setState({departments: departments});
-        const empResponse = await Axios.get('api/employees');
-        const employees = empResponse.data;
-        this.setState({employees: employees})  
-        } catch(err) {
-            console.log(err)
-        }
+        this.setState({ employees: (await Axios.get('api/employees')).data })
+        this.setState({ departments: (await Axios.get('api/departments')).data })
     }
-    async removeDept(id) {
-        const departmentId = null
-        await Axios.put(`api/employees/${id}`, { departmentId: departmentId })
-        const employeeArray = this.state.employees;
-        const employee = employeeArray.find(item => item.id === id);
-        employee.departmentId = departmentId
-        this.setState({employees: employeeArray})
+    async hire(event) {
+        event.preventDefault();
+        const employee = (await Axios.post(`api/employees/`)).data;
+        const employees = this.state.employees;
+        employees.push(employee)
+        this.setState({ employees })
     }
-    async deleteEmployee(id) {
-        await Axios.delete(`api/employees/${id}`)
-        const employees = this.state.employees.filter(employee => employee.id !== id)
-        this.setState({employees: employees})
+    async removeDept(employee) {
+        employee = (await Axios.put(`api/employees/${employee.id}`, { departmentId: null })).data;
+        const employees = this.state.employees.map(e => e.id === employee.id ? employee : e)
+        this.setState({employees})
+    }
+    async giveDept(employee) {
+        employee = (await Axios.put(`api/employees/${employee.id}`, { departmentId: Math.ceil(Math.random() * this.state.departments.length) })).data;
+        const employees = this.state.employees.map(e => e.id === employee.id ? employee : e)
+        this.setState({employees})
+    }
+    async deleteEmployee(employee) {
+        await Axios.delete(`api/employees/${employee.id}`)
+        const employees = this.state.employees.filter(e => e.id !== employee.id)
+        this.setState({ employees })
     }
     render() {
-        const noDeptEmployees = this.state.employees.filter(employee => !employee.departmentId)
+        const { employees, departments } = this.state;
+        const { deleteEmployee, removeDept, hire, giveDept } = this
+        const noDeptEmployees = employees.filter(employee => !employee.departmentId)
         return( 
         <div>
             <h1>Acme Employees and Departments</h1>
-            <h2>{this.state.employees.length} Total Employees</h2>
+            <h2>{employees.length} Total Employees</h2>
+            <form onSubmit = { hire }>
+                <button>Hire a New Employee</button>
+            </form>
             <div className="container">
                 <div className="column">
                     <h2>Employees without Departments ({noDeptEmployees.length})</h2>
@@ -49,15 +59,16 @@ class App extends React.Component {
                         return (
                             <div key = {employee.name}>
                             <p>{employee.name}</p>
-                            <button onClick = {() => this.deleteEmployee(employee.id)}>x</button>
+                            <button onClick = {() => deleteEmployee(employee)}>x</button>
+                            <button onClick = {() => giveDept(employee)}>Assign Department</button>
                             </div>
                         )
                         })
                     }
                 </div>
                 {
-                this.state.departments.map(department => {
-                    const deptEmployees = this.state.employees.filter(employee => employee.departmentId === department.id);
+                departments.map(department => {
+                    const deptEmployees = employees.filter(employee => employee.departmentId === department.id);
                     return ( 
                         <div className="column dept" key = {department.name}>
                             <h2>{department.name} ({deptEmployees.length})</h2>
@@ -66,8 +77,8 @@ class App extends React.Component {
                                 return (
                                 <div key = {employee.name}>
                                 <p>{employee.name}</p>
-                                <button onClick = {() => this.deleteEmployee(employee.id)}>x</button>
-                                <button onClick = {() => this.removeDept(employee.id)}>Remove From Department</button>
+                                <button onClick = { () => deleteEmployee(employee)}>x</button>
+                                <button onClick = { () => removeDept(employee) }>Remove From Department</button>
                                 </div>
                                 )
                             })
